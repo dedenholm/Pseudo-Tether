@@ -336,7 +336,7 @@ end
     local propagate_history_button = dt.new_widget("check_button")
                                     {label = "propagate history",
                                     value = false
-    }  
+}
     local move_files_box = dt.new_widget("box"){
                                     orientation ="vertical",
                                     visible = true,
@@ -369,7 +369,6 @@ end
                                       dt.new_widget("label"){label= os.date("%Y%m%d"), halign="start"}
                                     },
                                     dt.new_widget("box"){orientation ="horizontal",
--- dt.new_widget("label"){label = "SessionCode:",halign ="start", ellipsize ="none"},
                                     session_title,
                                     decrease_session_counter,
                                     session_counter,
@@ -378,6 +377,8 @@ end
                                     },
                                     -- reset_session_counter
     }
+    local apply_style = dt.new_widget("combobox"){label="Apply Style"
+}
     local jobcode_display = dt.new_widget("label"){visible=false, label =os.date("%Y%m%d") .. "_" .. session_title.text .. session_counter_stringify()}
         local button_start_capture = dt.new_widget("button"){
                                     label = _("Start Capture Session"),
@@ -409,8 +410,24 @@ local function toggle_capture_buttons(bool)
     move_files_box.visible = bool
     jobcode_display.visible = not bool
 end
+local styles_lookup = {}
 
-
+local function populate_styles_combobox()
+    for i in ipairs(dt.styles) do
+      if string.match(dt.styles[i]["name"], "Pseudo Tether|") then
+        local style_name = string.gsub(dt.styles[i]["name"], "Pseudo Tether|","")
+        print(i .. "index in styles table")
+        table.insert(apply_style, style_name)
+        table.insert(styles_lookup, i)
+        
+        
+    end
+    end
+    for i in ipairs(styles_lookup) do
+      print(apply_style[i] .. " applystyle")
+      print(styles_lookup[i] .. " styles_lookup")
+    end
+end
 local function init_gui(start_capture,stop_capture)
 
 
@@ -427,6 +444,7 @@ local function init_gui(start_capture,stop_capture)
     table.insert(pt.widgets, separator)
     table.insert(pt.widgets, move_files_box)
     table.insert(pt.widgets, move_files_options)
+    table.insert(pt.widgets, apply_style)
     table.insert(pt.widgets, sessioncode_header)
     table.insert(pt.widgets, jobcode_box)
     table.insert(pt.widgets, jobcode_display)
@@ -435,6 +453,21 @@ local function init_gui(start_capture,stop_capture)
  -- dd.dprint(pt_widgets)
 end
 
+local function read_tag_categories()
+    local tag_categories_table = {}
+
+    for i in ipairs(dt.tags) do
+      if dt.tags[i]["flags"] == 1 then table.insert(tag_categories_table, dt.tags[i]) end
+    end
+
+    for i in ipairs(tag_categories_table) do
+      print(tag_categories_table[i]["name"])
+    end
+    for i in ipairs(tag_categories_table) do
+      dd.dprint(tag_categories_table[i])
+    end
+
+end
 
 local function create_session_code(image, sequence)
 
@@ -601,17 +634,21 @@ local function capture_session(watch_dir)
 
 end
 local function start_capture()
+    print(apply_style.selected .. "index of apply_style selected")
+    print(styles_lookup[apply_style.selected] .. "index after lookup")
+    dd.dprint(dt.styles[styles_lookup[apply_style.selected]])
 
     local watch_dir = ingest_directory.value
     if watch_dir == nil or watch_dir =="" then
       dt.print("No import directory specified. Please choose a directory to import from")
       return
-
+    
     end
+    read_tag_categories()
     if prepend_date.value == true then jobcode_display.label =os.date("%Y%m%d") .. "_" .. session_title.text .. " " .. session_counter_stringify() else jobcode_display.label = session_title.text ..session_counter_stringify() end
     toggle_capture_buttons(false)
     toggle_move_files_options(false)
-
+    
     print(watch_dir)
     capture_session(watch_dir)
     print('done_daniel')
@@ -639,6 +676,7 @@ end
   --}
 
 register_prefs()
+populate_styles_combobox()
 ext_watched_extensions = ext_watchlist()
 init_gui(start_capture,stop_capture)
 
